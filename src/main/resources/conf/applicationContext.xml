@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+         http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/rabbit
+          http://www.springframework.org/schema/rabbit/spring-rabbit-1.5.xsd
+       ">
+	<context:component-scan base-package="com.ljy.*" />
+	<!-- 映入配置文件 -->
+	<bean id="propertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:/conf/jdbc.properties</value>
+				<value>classpath:/conf/redis.properties</value>
+				<value>classpath:/conf/rabbitmq.properties</value>
+			</list>
+		</property>
+	</bean>
+	<bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource"
+		init-method="init" destroy-method="close">
+		<!-- 设置数据库的基本配置（url,username,password） -->
+		<property name="url" value="${jdbc.url}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+		<!-- 数据库连接池 （初始化连接数 -->
+		<property name="initialSize" value="${ds.initialSize}" />
+		<property name="minIdle" value="${ds.minIdle}" />
+		<property name="maxActive" value="${ds.maxActive}" />
+		<!-- 配置数据库连接池的超时时间 -->
+		<property name="maxWait" value="${ds.maxWait}" />
+		<!-- 配置间隔时间（检查需关闭的空闲连接 ）单位毫秒 -->
+		<property name="timeBetweenEvictionRunsMillis" value="${ds.timeBetwwenEvictionRunsMillis}" />
+		<!-- 配置连接的最小生存时间 -->
+		<property name="minEvictableIdleTimeMillis" value="${ds.minEvictableIdleTimeMillis}" />
+	</bean>
+	<bean id="sqlSessionfactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="mapperLocations" value="classpath:com/ljy/vo/*.xml" />
+		<property name="dataSource" ref="dataSource"></property>
+		<property name="typeAliasesPackage" value="com.ljy.vo"></property>
+	</bean>
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="annotationClass" value="org.springframework.stereotype.Repository" />
+		<property name="basePackage" value="com.ljy.dao" />
+	</bean>
+	<bean id="jedisConfig" class=" org.apache.commons.pool2.impl.GenericObjectPoolConfig">
+		<property name="maxIdle" value="${redis.pool.maxIdle}" />
+		<property name="maxWaitMillis" value="${redis.pool.maxWaitMillis}"></property>
+		<property name="testOnBorrow" value="${redis.pool.testOnBorrow}" />
+		<property name="testOnReturn" value="${redis.pool.testOnReturn}" />
+	</bean>
+	<bean id="jedisPool" class="redis.clients.jedis.JedisPool">
+		<constructor-arg index="0" ref="jedisConfig" />
+		<constructor-arg index="1" value="${redis.host}" />
+		<constructor-arg index="2" value="${redis.port}" />
+		<constructor-arg index="3" value="${redis.timeout}" />
+		<constructor-arg index="4" value="${redis.password}" />
+	</bean>
+	<bean id="requestProducer" class="com.ljy.util.RequestProducer"
+		init-method="init">
+		<property name="host" value="${rabbitmq.host}" />
+		<property name="port" value="${rabbitmq.port}" />
+		<property name="userName" value="${rabbitmq.username}" />
+		<property name="password" value="${rabbitmq.password}" />
+		<property name="exchanges">
+			<list>
+				<value>buyActivity</value>
+			</list>
+		</property>
+		<property name="type">
+			<list>
+				<value>direct</value>
+			</list>
+		</property>
+	</bean>
+	<bean id="goodsConsumer" class="com.ljy.util.GoodsConsumer"
+		init-method="init">
+		<property name="host" value="${rabbitmq.host}" />
+		<property name="port" value="${rabbitmq.port}" />
+		<property name="userName" value="${rabbitmq.username}" />
+		<property name="password" value="${rabbitmq.password}" />
+		<property name="exchanges">
+			<list>
+				<value>buyActivity</value>
+			</list>
+		</property>
+		<property name="type">
+			<list>
+				<value>direct</value>
+			</list>
+		</property>
+		<property name="queueName" value="${rabbitmq.queueName}" />
+		<property name="bindExchange" value="${rabbitmq.bindExchange}"/>
+		<property name="routeExtrategy" value="${rabbitmq.routeExtrategy}"/>
+
+	</bean>
+
+</beans>
